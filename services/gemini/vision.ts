@@ -74,10 +74,13 @@ JSON 스키마:
    - 요소 간 간격: space-y-6, gap-4, mb-4
    - 최대 너비: max-w-4xl mx-auto
 
-4. **텍스트 추출**
+4. **텍스트 추출** (매우 중요!)
    - 화면에 보이는 텍스트만 정확히 추출
    - 잘린 텍스트는 보이는 부분까지만
    - 줄바꿈 그대로 유지
+   - **중요: content 필드는 절대 비워두지 마세요**
+   - **카드나 요소가 일부만 보이더라도 내부 텍스트는 반드시 추출**
+   - **텍스트가 전혀 안 보이면 요소 설명 사용** (예: "리뷰 카드", "사용자 후기")
 
 5. **스타일 변환**
    - 배경: bg-blue-600, bg-gradient-to-b from-blue-600 to-blue-700
@@ -124,7 +127,7 @@ JSON 스키마:
       "components": [
         {
           "type": "card",
-          "content": "DOORA***",
+          "content": "DOORA***",  // ← 카드 내부 텍스트 반드시 추출!
           "className": "bg-white rounded-2xl shadow-xl p-6 max-w-md mx-auto -mt-8"
         }
       ]
@@ -167,6 +170,7 @@ JSON 스키마:
 ✅ 섹션 높이 클래스 포함 (min-h-[X]vh)
 ✅ 레이아웃 클래스 포함 (flex, items-center 등)
 ✅ 정확한 텍스트 추출
+✅ **모든 content 필드 반드시 채우기 (절대 비우지 않기)**
 ✅ 적절한 padding/margin
 
 반드시 올바른 JSON 형식으로만 응답하세요. 설명이나 다른 텍스트는 포함하지 마세요.

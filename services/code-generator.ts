@@ -46,19 +46,20 @@ function generateComponentCode(component: Component, indent: number): string {
   const spaces = ' '.repeat(indent)
   const tag = getHtmlTag(component.type)
   const className = component.className || ''
+  const content = component.content || ''
 
   // 자식 콘텐츠가 없는 태그 (img 등)
   if (tag === 'img') {
-    return `${spaces}<img src="${component.src || ''}" alt="${component.content}" className="${className}" />\n`
+    return `${spaces}<img src="${component.src || ''}" alt="${content}" className="${className}" />\n`
   }
 
   // 링크 태그
   if (tag === 'a') {
-    return `${spaces}<a href="${component.href || '#'}" className="${className}">\n${spaces}  ${component.content}\n${spaces}</a>\n`
+    return `${spaces}<a href="${component.href || '#'}" className="${className}">\n${spaces}  ${content}\n${spaces}</a>\n`
   }
 
   // 일반 태그
-  return `${spaces}<${tag} className="${className}">\n${spaces}  ${component.content}\n${spaces}</${tag}>\n`
+  return `${spaces}<${tag} className="${className}">\n${spaces}  ${content}\n${spaces}</${tag}>\n`
 }
 
 /**
@@ -133,19 +134,20 @@ function generateHTMLComponentCode(component: Component, indent: number): string
   const spaces = ' '.repeat(indent)
   const tag = getHtmlTag(component.type)
   const classAttr = component.className ? ` class="${component.className}"` : ''
+  const content = component.content || ''
 
   // 자식 콘텐츠가 없는 태그 (img 등)
   if (tag === 'img') {
-    return `${spaces}<img src="${component.src || ''}" alt="${component.content}"${classAttr}>\n`
+    return `${spaces}<img src="${component.src || ''}" alt="${content}"${classAttr}>\n`
   }
 
   // 링크 태그
   if (tag === 'a') {
-    return `${spaces}<a href="${component.href || '#'}"${classAttr}>${component.content}</a>\n`
+    return `${spaces}<a href="${component.href || '#'}"${classAttr}>${content}</a>\n`
   }
 
   // 일반 태그
-  return `${spaces}<${tag}${classAttr}>${component.content}</${tag}>\n`
+  return `${spaces}<${tag}${classAttr}>${content}</${tag}>\n`
 }
 
 /**
