@@ -2,6 +2,50 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { PageSchema } from '@/types/page-builder'
 
 /**
+ * 재시도 로직 헬퍼 함수 (Exponential Backoff)
+ *
+ * @param fn - 실행할 비동기 함수
+ * @param maxRetries - 최대 재시도 횟수 (기본값: 3)
+ * @param initialDelay - 초기 대기 시간 (밀리초, 기본값: 1000ms)
+ * @returns 함수 실행 결과
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error: any) {
+      lastError = error
+
+      // 503 에러 또는 "overloaded" 메시지가 포함된 경우에만 재시도
+      const is503Error =
+        error.message?.includes('503') ||
+        error.message?.includes('overloaded') ||
+        error.message?.includes('Service Unavailable')
+
+      if (is503Error && attempt < maxRetries - 1) {
+        const delay = initialDelay * Math.pow(2, attempt)
+        console.log(
+          `⚠️ Gemini API 과부하 감지. 재시도 ${attempt + 1}/${maxRetries}, ${delay}ms 대기...`
+        )
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        continue
+      }
+
+      // 503이 아닌 다른 에러이거나 최대 재시도 횟수 도달 시 즉시 throw
+      throw error
+    }
+  }
+
+  throw lastError!
+}
+
+/**
  * Gemini Vision API를 사용하여 이미지를 분석하고 PageSchema JSON 반환
  *
  * @param imageBase64 - Base64 인코딩된 이미지 (data:image/png;base64,...)
@@ -187,26 +231,28 @@ JSON 스키마:
 `
 
   try {
-    // Gemini Vision API 호출
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType,
-          data: base64Data,
+    // Gemini Vision API 호출 (재시도 로직 포함)
+    const schema = await retryWithBackoff(async () => {
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
         },
-      },
-    ])
+      ])
 
-    const response = result.response
-    const text = response.text()
+      const response = result.response
+      const text = response.text()
 
-    // JSON 블록 추출 (```json...``` 형식)
-    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/)
-    const jsonText = jsonMatch ? jsonMatch[1] : text
+      // JSON 블록 추출 (```json...``` 형식)
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/)
+      const jsonText = jsonMatch ? jsonMatch[1] : text
 
-    // JSON 파싱
-    const schema: PageSchema = JSON.parse(jsonText)
+      // JSON 파싱
+      return JSON.parse(jsonText) as PageSchema
+    }, 3, 1000) // 최대 3회 재시도, 1초부터 시작 (1s → 2s → 4s)
 
     return schema
   } catch (error) {
