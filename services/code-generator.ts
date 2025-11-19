@@ -14,7 +14,8 @@ export function generateReactCode(schema: PageSchema): string {
 
   // 각 섹션을 순회하며 코드 생성
   schema.sections.forEach((section, sectionIndex) => {
-    const sectionClasses = [section.background, 'p-8'].filter(Boolean).join(' ')
+    // background에 이미 레이아웃 클래스가 포함될 수 있으므로 그대로 사용
+    const sectionClasses = section.background || ''
 
     code += `      {/* Section ${sectionIndex + 1}: ${section.type} */}\n`
     code += `      <section className="${sectionClasses}">\n`
@@ -100,7 +101,8 @@ export function generateHTMLCode(schema: PageSchema): string {
 
   // 각 섹션을 순회하며 HTML 생성
   schema.sections.forEach((section, sectionIndex) => {
-    const sectionClasses = [section.background, 'p-8'].filter(Boolean).join(' ')
+    // background에 이미 레이아웃 클래스가 포함될 수 있으므로 그대로 사용
+    const sectionClasses = section.background || ''
 
     html += `    <!-- Section ${sectionIndex + 1}: ${section.type} -->\n`
     html += `    <section class="${sectionClasses}">\n`

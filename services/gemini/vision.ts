@@ -33,18 +33,20 @@ export async function analyzeImage(imageBase64: string): Promise<PageSchema> {
   const prompt = `
 다음 웹페이지 스크린샷을 분석하여 React 컴포넌트를 생성할 수 있는 JSON 형식으로 변환해주세요.
 
+⚠️ 중요: 현재 화면(viewport)에 실제로 보이는 부분만 분석하세요. 스크롤해야 보이는 내용이나 화면 밖의 요소는 포함하지 마세요.
+
 JSON 스키마:
 \`\`\`json
 {
   "sections": [
     {
       "type": "hero" | "feature" | "testimonial" | "cta" | "navigation" | "footer" | "pricing" | "faq" | "team" | "contact",
-      "background": "Tailwind CSS 배경 클래스 (예: bg-blue-600, bg-gradient-to-r from-blue-500 to-purple-600)",
+      "background": "Tailwind CSS 배경 + 높이 클래스 (예: bg-blue-600 min-h-screen, bg-gray-100 min-h-[60vh] py-16)",
       "components": [
         {
           "type": "h1" | "h2" | "h3" | "p" | "span" | "button" | "a" | "badge" | "card" | "div",
-          "content": "실제 텍스트 내용",
-          "className": "Tailwind CSS 클래스 (예: text-4xl font-bold text-white mb-4)"
+          "content": "실제 텍스트 내용 (보이는 부분만)",
+          "className": "Tailwind CSS 클래스 (레이아웃 + 스타일)"
         }
       ]
     }
@@ -53,44 +55,77 @@ JSON 스키마:
 \`\`\`
 
 분석 규칙:
-1. **섹션 분리**: 화면을 의미 있는 섹션으로 나누세요 (히어로, 기능, 후기 등)
-2. **텍스트 추출**: 이미지 내 모든 텍스트를 정확히 추출하세요
-3. **스타일 변환**: 색상, 크기, 간격 등을 Tailwind CSS 클래스로 표현하세요
-   - 배경색: bg-blue-600, bg-gray-100 등
-   - 텍스트 크기: text-4xl, text-lg 등
-   - 폰트 굵기: font-bold, font-semibold 등
-   - 간격: mb-4, p-8, space-y-4 등
-   - 텍스트 색상: text-white, text-gray-900 등
-4. **컴포넌트 타입**: 적절한 HTML 태그를 선택하세요
-   - 제목: h1, h2, h3
-   - 본문: p, span
-   - 버튼: button
-   - 링크: a
-   - 장식: badge
-   - 카드: card (div로 렌더링됨)
 
-예시:
+1. **viewport 기반 분석** (가장 중요!)
+   - 현재 화면에 보이는 부분만 추출
+   - 요소가 잘려 있으면 보이는 부분까지만 포함
+   - 예: 카드의 일부만 보이면 보이는 텍스트만 추출
+
+2. **섹션 분리 및 높이**
+   - 각 섹션의 상대적 크기를 정확히 파악
+   - 전체 화면: min-h-screen
+   - 화면의 70%: min-h-[70vh]
+   - 화면의 50%: min-h-[50vh]
+   - 고정 높이: h-64 (작은 섹션)
+
+3. **레이아웃 구조**
+   - 섹션 내부 정렬: flex flex-col items-center justify-center
+   - padding: py-16 px-8 (섹션), p-6 (카드)
+   - 요소 간 간격: space-y-6, gap-4, mb-4
+   - 최대 너비: max-w-4xl mx-auto
+
+4. **텍스트 추출**
+   - 화면에 보이는 텍스트만 정확히 추출
+   - 잘린 텍스트는 보이는 부분까지만
+   - 줄바꿈 그대로 유지
+
+5. **스타일 변환**
+   - 배경: bg-blue-600, bg-gradient-to-b from-blue-600 to-blue-700
+   - 텍스트: text-5xl font-bold text-white leading-tight
+   - 그림자: shadow-lg, shadow-xl
+   - 둥근 모서리: rounded-lg, rounded-2xl
+   - 투명도: bg-white/20, bg-black/50
+
+6. **컴포넌트 타입**
+   - 제목: h1 (메인), h2 (서브), h3 (소제목)
+   - 본문: p (단락), span (인라인)
+   - 버튼: button
+   - 배지: badge (작은 라벨)
+   - 카드: card (내용 그룹)
+
+예시 1 (히어로 섹션 + 일부 보이는 카드):
 \`\`\`json
 {
   "sections": [
     {
       "type": "hero",
-      "background": "bg-blue-600",
+      "background": "bg-blue-600 min-h-[70vh] flex items-center justify-center",
       "components": [
         {
           "type": "badge",
-          "content": "#ThisisBlank FEATURED",
-          "className": "inline-block bg-white/20 text-white px-3 py-1 rounded-full text-sm mb-4"
+          "content": "#100%신뢰지급 #후기이벤트",
+          "className": "bg-black text-white px-4 py-2 rounded-full text-sm mb-6"
         },
         {
           "type": "h1",
-          "content": "들려주세요 당신의 여행기",
-          "className": "text-5xl font-bold text-white mb-2"
+          "content": "들러주세요",
+          "className": "text-5xl font-bold text-white mb-2 text-center"
         },
         {
           "type": "h2",
-          "content": "독립주세요",
-          "className": "text-3xl font-bold text-white"
+          "content": "당신의 여행기",
+          "className": "text-4xl font-bold text-white text-center"
+        }
+      ]
+    },
+    {
+      "type": "testimonial",
+      "background": "bg-gray-50 min-h-[30vh]",
+      "components": [
+        {
+          "type": "card",
+          "content": "DOORA***",
+          "className": "bg-white rounded-2xl shadow-xl p-6 max-w-md mx-auto -mt-8"
         }
       ]
     }
@@ -98,7 +133,43 @@ JSON 스키마:
 }
 \`\`\`
 
-중요: 반드시 올바른 JSON 형식으로만 응답하세요. 설명이나 다른 텍스트는 포함하지 마세요.
+예시 2 (전체 화면 히어로):
+\`\`\`json
+{
+  "sections": [
+    {
+      "type": "hero",
+      "background": "bg-gradient-to-b from-purple-600 to-blue-600 min-h-screen flex flex-col items-center justify-center",
+      "components": [
+        {
+          "type": "h1",
+          "content": "Welcome to Our Service",
+          "className": "text-6xl font-bold text-white mb-4 text-center"
+        },
+        {
+          "type": "p",
+          "content": "The best solution for your business",
+          "className": "text-xl text-white/90 mb-8 text-center"
+        },
+        {
+          "type": "button",
+          "content": "Get Started",
+          "className": "bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100"
+        }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+중요 체크리스트:
+✅ 화면에 보이는 부분만 추출
+✅ 섹션 높이 클래스 포함 (min-h-[X]vh)
+✅ 레이아웃 클래스 포함 (flex, items-center 등)
+✅ 정확한 텍스트 추출
+✅ 적절한 padding/margin
+
+반드시 올바른 JSON 형식으로만 응답하세요. 설명이나 다른 텍스트는 포함하지 마세요.
 `
 
   try {
